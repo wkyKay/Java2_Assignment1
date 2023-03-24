@@ -3,6 +3,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -46,7 +47,8 @@ public class OnlineCoursesAnalyzer {
 
     //1
     public Map<String, Integer> getPtcpCountByInst() {
-        return null;
+        Map<String, Integer> a = courses.stream().collect(Collectors.groupingBy(course -> course.institution, Collectors.summingInt(course -> course.participants)));
+        return a;
     }
 
     //2
