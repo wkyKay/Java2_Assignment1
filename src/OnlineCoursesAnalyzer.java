@@ -119,11 +119,55 @@ public class OnlineCoursesAnalyzer {
 
     //6
     public List<String> recommendCourses(int age, int gender, int isBachelorOrHigher) {
-        return null;
+        Map<String, List<Course>> a = courses.stream().collect(Collectors.groupingBy(course -> course.number, Collectors.toList()));
+        List<CourseForT6> true_courses = new ArrayList<>();
+        for (Map.Entry<String, List<Course>> entry : a.entrySet()) {
+            String key = entry.getKey();
+            List<Course> value = entry.getValue();
+
+            Course c = value.stream().max(Comparator.comparing(course -> course.launchDate)).orElse(null);
+            assert c != null;
+            String title = c.title;
+            Optional<Date> launchdate = value.stream().map(course -> course.launchDate).max(Comparator.naturalOrder());
+            OptionalDouble average_Median_age = OptionalDouble.of(value.stream().mapToDouble(course -> course.medianAge).average().orElse(0.0));
+            OptionalDouble average_male= OptionalDouble.of(value.stream().mapToDouble(course -> course.percentMale).average().orElse(0.0));
+            OptionalDouble average_degree = OptionalDouble.of(value.stream().mapToDouble(course -> course.percentDegree).average().orElse(0.0));
+            true_courses.add(new CourseForT6(key, title, launchdate, average_Median_age, average_male, average_degree));
+        }
+
+        List<String> answer = true_courses.stream()
+                .sorted(Comparator.comparingDouble(course -> course.getSimilarity(age,gender,isBachelorOrHigher)))
+                .map(course->course.title).distinct().limit(10).toList();
+
+        return answer;
+
     }
 
 }
+class CourseForT6{
+    String number;
+    String title;
+    Optional<Date> launchdate;
+    OptionalDouble average_Median_age;
+    OptionalDouble average_male;
+    OptionalDouble average_degree;
+    public CourseForT6(String number, String title, Optional<Date> date, OptionalDouble average_Median_age, OptionalDouble average_male, OptionalDouble average_degree){
+        this.number = number;
+        this.title = title;
+        this.launchdate = date;
+        this.average_Median_age = average_Median_age;
+        this.average_male = average_male;
+        this.average_degree = average_degree;
+    }
 
+    //        similarity value= (age -average Median Age)^2 + (gender100 - average Male)^2 + (isBachelorOrHigher100
+//                - average Bachelor's Degree or Higher)^2$
+    public double getSimilarity(int age, int gender, int isBachelorOrHigher){
+        double similarity = Math.pow(age-average_Median_age.getAsDouble(),2) + Math.pow(gender*100-average_male.getAsDouble(),2)
+                + Math.pow(isBachelorOrHigher*100 - average_degree.getAsDouble(),2);
+        return similarity;
+    }
+}
 class Course{
     String institution;
     String number;
