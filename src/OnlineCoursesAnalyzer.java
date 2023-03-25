@@ -135,7 +135,7 @@ public class OnlineCoursesAnalyzer {
             true_courses.add(new CourseForT6(key, title, launchdate, average_Median_age, average_male, average_degree));
         }
 
-        List<String> answer = true_courses.stream()
+        List<String> answer = true_courses.stream().sorted(Comparator.comparing(c -> c.title))
                 .sorted(Comparator.comparingDouble(course -> course.getSimilarity(age,gender,isBachelorOrHigher)))
                 .map(course->course.title).distinct().limit(10).toList();
 
