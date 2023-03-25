@@ -1,6 +1,7 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -53,22 +54,67 @@ public class OnlineCoursesAnalyzer {
 
     //2
     public Map<String, Integer> getPtcpCountByInstAndSubject() {
-        return null;
+        Map<String, Integer> a = courses.stream()
+                .collect(Collectors.groupingBy(course -> course.institution + "-" + course.subject, Collectors.summingInt(course -> course.participants)));
+        List<Map.Entry<String, Integer>> list = new ArrayList<>(a.entrySet().stream().toList());
+        list.sort((o1, o2) -> o2.getValue() - o1.getValue());
+        Map<String, Integer> sortedMap = new LinkedHashMap<>();
+        for (Map.Entry<String, Integer> entry : list) {
+            sortedMap.put(entry.getKey(), entry.getValue());
+        }
+        return sortedMap;
     }
 
     //3
     public Map<String, List<List<String>>> getCourseListOfInstructor() {
-        return null;
+        Map<String, List<List<String>>> a = new HashMap<>();
+        List<List<String>> b = new ArrayList<>();
+        for (int i = 0; i < courses.size(); i++) {
+
+            String[] ins = courses.get(i).instructors.split(", ");
+            for (int j = 0; j < ins.length; j++) {
+                int finalJ = j;
+                b.add(courses.stream().filter(course -> course.instructors.equals(ins[finalJ])).map(course -> course.title).distinct().sorted().collect(Collectors.toList()));
+                b.add(courses.stream().filter(course -> Arrays.asList(course.instructors.split(", ")).contains(ins[finalJ])&& !course.instructors.equals(ins[finalJ])).map(course -> course.title).distinct().sorted().collect(Collectors.toList()));
+                a.put(ins[j], b);
+                b = new ArrayList<>();
+            }
+        }
+        return a;
     }
 
     //4
     public List<String> getCourses(int topK, String by) {
-        return null;
+        List<String> a = null;
+        Field field;
+        Field[] fields = Course.class.getDeclaredFields();
+        field = Arrays.stream(fields).filter(f -> f.getName().toLowerCase().contains(by.toLowerCase())).findFirst().orElse(null);
+        if (field != null && field.getType() == double.class) {
+            a = courses.stream().sorted(Comparator.comparingDouble(course -> {
+                try {
+                    return (double) field.get(course)*-1;
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+            })).map(course -> (course.title)).distinct().limit(topK).toList();
+        }else if(field != null && field.getType() == int.class){
+            a = courses.stream().sorted(Comparator.comparingInt(course -> {
+                try {
+                    return (int)field.get(course)*-1;
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+            })).map(course -> (course.title)).distinct().limit(topK).toList();
+        }
+
+        return a;
     }
 
     //5
     public List<String> searchCourses(String courseSubject, double percentAudited, double totalCourseHours) {
-        return null;
+        List<String> a = courses.stream().filter(course -> course.subject.toLowerCase().contains(courseSubject.toLowerCase())
+                && course.percentAudited >= percentAudited && course.totalHours <= totalCourseHours).map(course -> course.title).distinct().sorted().toList();
+        return a;
     }
 
     //6
@@ -78,7 +124,7 @@ public class OnlineCoursesAnalyzer {
 
 }
 
-class Course {
+class Course{
     String institution;
     String number;
     Date launchDate;
@@ -142,4 +188,19 @@ class Course {
         this.percentFemale = percentFemale;
         this.percentDegree = percentDegree;
     }
+
+    public boolean IfAmongInstructor(String name){
+        String[]instr = this.instructors.split(", ");
+        if(instr.length == 1){
+            return false;
+        }
+        for (String s : instr) {
+            if (s.equals(name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
 }
